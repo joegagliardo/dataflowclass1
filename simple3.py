@@ -8,7 +8,7 @@ import argparse
 import logging
 import re
 
-from past.builtins import unicode
+#from past.builtins import unicode
 
 import apache_beam as beam
 from apache_beam.io import ReadFromText

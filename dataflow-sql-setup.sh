@@ -8,7 +8,7 @@ source df-env/bin/activate
 python3 -m pip install -q --upgrade pip setuptools wheel
 python3 -m pip install apache-beam[gcp]
 gcloud services enable dataflow.googleapis.com
-PROJECT_ID=$(gcloud config get-value project)
+export PROJECT_ID=$(gcloud config get-value project)
 export PROJECT_NUMBER=$(gcloud projects list --filter="$PROJECT_ID" --format="value(PROJECT_NUMBER)")
 export serviceAccount=""$PROJECT_NUMBER"-compute@developer.gserviceaccount.com"
 gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:${serviceAccount}" --role="roles/dataflow.worker"

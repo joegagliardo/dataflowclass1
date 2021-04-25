@@ -14,23 +14,21 @@ from apache_beam.io import WriteToText
 from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.options.pipeline_options import SetupOptions
 
-class RegionParseDict(beam.DoFn):
-    def process(self, element):
-        regionid, regionname = element.split(',')
-        yield {'regionid': int(regionid), 'regionname': regionname.title()}
-
 class TerritoryParseTuple(beam.DoFn):
     def process(self, element):
         territoryid, territoryname, regionid = element.split(',')
         yield(int(territoryid), territoryname, int(regionid))
-        
-                
-class LookupRegion(beam.DoFn):
-    def process(self, element, lookuptable = [{'regionid':1, 'regionname':'North'}, {'regionid':2, 'regionname':'South'}]):
-        territoryid, territoryname, regionid = element
-        # Becase the regions PCollection is a different shape, use the following comprehension to make it easier to do a lookup
-        lookup = {e['regionid'] : e['regionname'] for e in lookuptable }
-        yield(territoryid, territoryname, regionid, lookup.get(regionid, 'No Region'))
+
+class FilterEven(beam.DoFn):
+    def process(self, element):
+        if element[2] % 2 == 0:
+            yield element
+
+class FilterStartsWith(beam.DoFn):
+    def process(self, element):
+        if element[1].startswith('S'):
+            yield element
+
 
 def main(argv=None, save_main_session=False):
   projectid = 'qwiklabs-gcp-04-c21b49858f60'
@@ -53,24 +51,19 @@ def main(argv=None, save_main_session=False):
 
   # The pipeline will be run on exiting the with block.
   with beam.Pipeline(options=pipeline_options) as p:
-    regions = (
-        p | 'Read Regions' >> ReadFromText(f'{known_args.input}/regions.csv')
-          | 'Parse Regions' >> beam.ParDo(RegionParseDict())
-    )
-
-    territories =  (
-        p | 'Read Territories' >> ReadFromText(f'{known_args.input}/territories.csv')
-          | 'Parse Territories' >> beam.ParDo(TerritoryParseTuple())
-    )
-
-    lookup = (
-        territories
-        | beam.ParDo(LookupRegion(), lookuptable = beam.pvalue.AsList(regions))
-        | 'Write' >> WriteToText(f'{known_args.output}/sideinputs.csv')
+    territories = (
+        p | 'Read' >> ReadFromText(f'{known_args.input}/territories.csv')
+          | 'Parse' >> beam.ParDo(TerritoryParseTuple())
+          | 'Filter 1' >> beam.ParDo(FilterEven())
+          | 'Filter 2' >> beam.ParDo(FilterStartsWith())
+#           | 'Filter 1' >> beam.Filter(lambda x : x[2] % 2 == 0)
+#           | 'Filter 2' >> beam.Filter(lambda x : x[1].startswith('S'))
+          | 'Write' >> WriteToText(f'{known_args.input}/filters.csv/')
     )
     #p.run()
 
 if __name__ == '__main__':
   logging.getLogger().setLevel(logging.INFO)
   main()
+
 

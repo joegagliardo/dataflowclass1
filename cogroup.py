@@ -93,7 +93,7 @@ def main(argv=None, save_main_session=False):
                 | LeftJoin('regions', regions, 'regionid', 'territories', territories, 'regionid')
                 | 'Write' >> WriteToText(f'{known_args.output}/cogroup.csv')
                )
-    p.run()
+    #p.run()
 
 if __name__ == '__main__':
   logging.getLogger().setLevel(logging.INFO)

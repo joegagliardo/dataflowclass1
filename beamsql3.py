@@ -1,4 +1,5 @@
 # This code is not running in the notebook
+# This example is like example 2 but for a real file and a decorator to register the schema class
 import apache_beam as beam
 from apache_beam.io import ReadFromText
 from apache_beam import coders
@@ -7,12 +8,13 @@ from apache_beam.transforms.sql import SqlTransform
 import typing
 import json
 
+@coders.registry.register_coder(coders.RowCoder)
 class Territory(typing.NamedTuple):
     territoryid: int
     territoryname: str
     regionid: int
 
-coders.registry.register_coder(Territory, coders.RowCoder)
+#coders.registry.register_coder(Territory, coders.RowCoder)
         
 class TerritoryParseClass(beam.DoFn):
     def process(self, element):

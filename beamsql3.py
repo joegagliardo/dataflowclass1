@@ -15,7 +15,7 @@ class Territory(typing.NamedTuple):
 
 coders.registry.register_coder(Territory, coders.RowCoder)
         
-@with_output_type(Territory)
+@with_output_types(Territory)
 class TerritoryParseClass(beam.DoFn):
     def process(self, element):
         territoryid, territoryname, regionid = element.split(',')

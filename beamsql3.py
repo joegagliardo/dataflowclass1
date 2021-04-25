@@ -24,10 +24,10 @@ territoriesfilename = 'territories.csv'
 with beam.Pipeline() as p:
     territories = (
                   p | 'Read Territories' >> ReadFromText('territories.csv')
-                    | 'Parse Territories' >> beam.ParDo(TerritorySplitClass()).with_output_types(Territory)
+                    | 'Parse Territories' >> beam.ParDo(TerritoryParseClass()).with_output_types(Territory)
                     | 'SQL Territories' >> SqlTransform("""SELECT regionid, count(*) as `cnt` FROM PCOLLECTION GROUP BY regionid""")
                     | 'Map Territories for Print' >> beam.Map(lambda x : f'{x.regionid} - {x.cnt}')
-                    | beam.Map(print)
+                    | 'Print SQL' >> beam.Map(print)
                     )
     
 #https://www.youtube.com/watch?v=zx4p-UNSmrA

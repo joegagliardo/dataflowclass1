@@ -1,3 +1,4 @@
+# This code is not running in the notebook
 import apache_beam as beam
 from apache_beam.io import ReadFromText
 from apache_beam import coders
@@ -6,27 +7,26 @@ from apache_beam.transforms.sql import SqlTransform
 import typing
 import json
 
-class Territory(typing.NamedTuple):
-    territoryid: int
-    territoryname: str
-    regionid: int
-
-coders.registry.register_coder(Territory, coders.RowCoder)
-        
-class TerritorySplitClass(beam.DoFn):
-    def process(self, element):
-        territoryid, territoryname, regionid = element.split(',')
-        yield Territory(int(territoryid), territoryname.title(), int(regionid))
-
-        
-territoriesfilename = 'territories.csv'
 with beam.Pipeline() as p:
-    territories = (
-                  p | 'Read Territories' >> ReadFromText('territories.csv')
-                    | 'Split Territories' >> beam.ParDo(TerritorySplitClass()).with_output_types(Territory)
-                    | 'SQL Territories' >> SqlTransform("""SELECT regionid, count(*) as `cnt` FROM PCOLLECTION GROUP BY regionid""")
-                    | 'Map Territories for Print' >> beam.Map(lambda x : f'{x.regionid} - {x.cnt}')
-#                     | 'SQL Territories' >> SqlTransform("""SELECT regionid, territoryid, territoryname FROM PCOLLECTION""")
-#                     | 'Map Territories for Print' >> beam.Map(lambda x : f'{x.regionid} - {x.territoryid} - {x.territoryname}')
-                    | beam.Map(print)
-                    )
+    parent = (
+            p | 'Create Parent' >> beam.Create([(1, 'One'), (2, 'Two')])
+              | 'Map Parent' >> beam.Map(lambda x : beam.Row(parent_id = x[0], parent_name = x[1]))
+    )
+
+    child = (
+            p | 'Create Child' >> beam.Create([('Uno', 1), ('Due', 2), ('Eins', 1), ('Una', 1), ('Dos', 2)])
+              | 'Map Child' >> beam.Map(lambda x : beam.Row(child_name = x[0], parent_id = x[1]))
+    )
+    
+    ( {'parent': parent, 'child' : child} 
+         | SqlTransform("""
+             SELECT p.parent_id, p.parent_name, c.child_name 
+             FROM parent as p 
+             INNER JOIN child as c ON p.parent_id = c.parent_id
+             """)
+        | 'Map Join' >> beam.Map(lambda x : f'{x.parent_id} {x.parent_name} {x.child_name}')
+        | 'Print Join' >> beam.Map(print)
+        )
+
+#     parent | 'print parent' >> beam.Map(print)
+#     child  | 'print child' >> beam.Map(print)

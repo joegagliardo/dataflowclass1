@@ -54,10 +54,3 @@ if __name__ == '__main__':
   run()
 
 
-# using a ParDo and DoFn instead of a Map
-filename = 'regions.csv'
-with beam.Pipeline() as p:
-    lines = p | 'Read' >> ReadFromText(filename)
-    records = lines | 'Split' >> beam.ParDo(RegionSplit())
-    records | 'Write' >> WriteToText('regions.out')
-

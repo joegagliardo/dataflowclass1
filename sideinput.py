@@ -4,7 +4,7 @@ from __future__ import absolute_import
 
 import argparse
 import logging
-import re
+import re, os
 
 #from past.builtins import unicode
 
@@ -33,7 +33,7 @@ class LookupRegion(beam.DoFn):
         yield(territoryid, territoryname, regionid, lookup.get(regionid, 'No Region'))
 
 def main(argv=None, save_main_session=False):
-  projectid = 'qwiklabs-gcp-04-c21b49858f60'
+  projectid = os.environ.get('PROJECT')
   parser = argparse.ArgumentParser()
   parser.add_argument(
       '--input',

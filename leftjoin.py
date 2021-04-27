@@ -1,4 +1,4 @@
-"""A template to import the default package and parse the arguments"""
+# python leftjoin.py --runner Dataflowrunner --project $PROJECT --region us-central1 --temp_location gs://$PROJECT/tmp
 
 # pytype: skip-file
 
@@ -6,7 +6,7 @@ from __future__ import absolute_import
 
 import argparse
 import logging
-import re
+import re, os
 
 from past.builtins import unicode
 
@@ -57,16 +57,17 @@ class LeftJoin(beam.PTransform):
 
 def run(argv=None, save_main_session=True):
   """Main entry point; defines and runs the wordcount pipeline."""
+  projectid = os.environ.get('PROJECT')
   parser = argparse.ArgumentParser()
   parser.add_argument(
       '--input',
       dest='input',
-      default='gs://dataflowclass1-bucket/',
+      default=f'gs://{projectid}/',
       help='Input file to process.')
   parser.add_argument(
       '--output',
       dest='output',
-      default = 'gs://dataflowclass1-bucket/territories_output',      
+      default = f'gs://{projectid}/territories_output',      
       help='Output file to write results to.')
   known_args, pipeline_args = parser.parse_known_args(argv)
 
@@ -104,10 +105,10 @@ def run(argv=None, save_main_session=True):
 
     leftjoin | 'write to leftjoin to file' >> WriteToAvro(known_args.output+'_leftjoin_avro', schema = schema)
 
-    joined = (
-            p | 'read joined avro file to confirm' >> ReadFromAvro(known_args.output+'_leftjoin_avro*')
-              | 'print joined avro file' >> beam.Map(print)
-            )
+#     joined = (
+#             p | 'read joined avro file to confirm' >> ReadFromAvro(known_args.output+'_leftjoin_avro*')
+#               | 'print joined avro file' >> beam.Map(print)
+#             )
 
 if __name__ == '__main__':
   logging.getLogger().setLevel(logging.ERROR)

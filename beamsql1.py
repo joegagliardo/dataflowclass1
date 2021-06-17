@@ -4,6 +4,7 @@ import apache_beam as beam
 from apache_beam.io import ReadFromText
 from apache_beam import coders
 from apache_beam.transforms.sql import SqlTransform
+from apache_beam.io import ReadFromText, WriteToText
 
 import typing
 import json
@@ -26,7 +27,9 @@ with beam.Pipeline() as p:
              INNER JOIN child as c ON p.parent_id = c.parent_id
              """)
         | 'Map Join' >> beam.Map(lambda x : f'{x.parent_id} {x.parent_name} {x.child_name}')
-        | 'Print Join' >> beam.Map(print)
+#        | 'Print Join' >> beam.Map(print)
+        | 'Write' >> WriteToText('parentchild.out')
+
         )
 
 #     parent | 'print parent' >> beam.Map(print)

@@ -16,16 +16,18 @@ class NestJoin(beam.PTransform):
         self.child_key = child_key
 
     @staticmethod
+    def excludeKeysFromDict(d, keyset):
+        return {k:v for k,v in d.items() if k in set(d.keys()).difference(keyset)}
+        
+    @staticmethod
     def reshapeToKV(item, key):
         # pipeline object should be a dictionary
-        item1 = item.copy()
-        del item1[key]
-        return (item[key], item1)
+        return (item[key], NestJoin.excludeKeysFromDict(item, {key}))
 
     def reshapeCoGroupToDict(self, item):
-        ret = {self.parent_key : item[0]}
-        ret.update(item[1][self.parent_name][0])
-        ret[self.child_name] = item[1][self.child_name]
+        ret = {self.parent_key: item[0]
+              , **item[1][self.parent_name][0]
+              , self.child_name: item[1][self.child_name]}
         return ret
 
     def expand(self, pcols):
@@ -44,13 +46,10 @@ class LeftJoin(NestJoin):
     Overloads the reshapeCoGroupToDict method to flatten out all the children to produce a traditional JOIN result
     '''
     def reshapeCoGroupToDict(self, item):
-        parent = {self.parent_key : item[0]}
-        parent.update(item[1][self.parent_name][0])
-        ret = []
-        for row1 in item[1][self.child_name]:
-            row = parent.copy()
-            row.update(row1)
-            ret.append(row)
+        ret = [{self.parent_key: item[0]
+              , **item[1][self.parent_name][0]
+              , **row}
+              for row in item[1][self.child_name]]
         return ret
 
     

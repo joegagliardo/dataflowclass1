@@ -18,11 +18,13 @@ from apache_beam.transforms.sql import SqlTransform
 class Region(typing.NamedTuple):
     regionid: int
     regionname: str
+        
 beam.coders.registry.register_coder(Region, beam.coders.RowCoder)
         
 class RegionParseClass(beam.DoFn):
     def process(self, element):
         yield Region(int(element['regionid']), element['regiondescription'])
+        # yield Region(**element)
 
 class Territory(typing.NamedTuple):
     territoryid: int
@@ -46,23 +48,11 @@ def run(argv=None, save_main_session=True):
   """Main entry point; defines and runs the wordcount pipeline."""
   projectid = os.environ.get('PROJECT')
   parser = argparse.ArgumentParser()
-  parser.add_argument(
-      '--rfile',
-      dest='rfile',
-      default=f'gs://{projectid}/regions.avro',
-      help='Input file to process.')
-  parser.add_argument(
-      '--territoryfile',
-      dest='territoryfile',
-      default=f'gs://{projectid}/territories.avro',
-      help='Input file to process.')
-  parser.add_argument(
-      '--output',
-      dest='output',
-      default = f'gs://{projectid}/regions_output',      
-      help='Output file to write results to.')
+  parser.add_argument('--rfile', required=True, help='Path to regions.avro file.')
+  parser.add_argument('--territoryfile', required=True, help='Path to territories.avro file.')
+  parser.add_argument('--output', required=True, help='GCS path for output.')
   known_args, pipeline_args = parser.parse_known_args(argv)
-  print(known_args, pipeline_args)
+  print('Known', known_args, 'Pipeline', pipeline_args)
 
   # We use the save_main_session option because one or more DoFn's in this
   # workflow rely on global context (e.g., a module imported at module level).
@@ -70,7 +60,7 @@ def run(argv=None, save_main_session=True):
   pipeline_options.view_as(SetupOptions).save_main_session = save_main_session
 
   # The pipeline will be run on exiting the with block.
-  with beam.Pipeline() as p:
+  with beam.Pipeline(options=pipeline_options) as p:
         regions = (p | 'Read Regions' >> beam.io.ReadFromAvro(known_args.rfile)
                          | 'Parse Regions' >> beam.ParDo(RegionParseClass())
                       )
@@ -78,12 +68,12 @@ def run(argv=None, save_main_session=True):
                          | 'Parse Territories' >> beam.ParDo(TerritoryParseClass())
                       )
 
-        result = ( {'regions': regions, 'territories' : territories} 
+        result = ( {'r': regions, 't' : territories} 
              | SqlTransform(
      """
     SELECT r.regionid AS regionid, r.regionname AS regionname, SUM(1) AS cnt 
-    FROM regions AS r 
-    JOIN territories AS t on t.regionid = r.regionid 
+    FROM r 
+    JOIN t on t.regionid = r.regionid 
     GROUP BY r.regionid, r.regionname
     """)
              # | 'Convert to Result Class' >> beam.Map(lambda x : Result(x.regionid, x.regionname, x.cnt))
